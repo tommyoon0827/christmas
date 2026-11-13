@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0807">
+<title>Merry Christmas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#f0d6a0;--ink:#fbf5ea;--muted:#bba994;--glass:rgba(30,23,18,.6);--line:rgba(240,214,160,.25)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(120% 80% at 50% 38%,#3b2e24 0%,#1c1511 48%,#0b0807 100%);color:var(--ink);font-family:'Gowun Batang',serif;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.fade{opacity:0;transform:translateY(8px);transition:opacity 1.2s ease,transform 1.2s ease}
+.fade.show{opacity:1;transform:none}
+
+/* 받는 화면 */
+#hint{position:fixed;left:16px;right:16px;bottom:calc(4vh + env(safe-area-inset-bottom));text-align:center;font-size:15px;letter-spacing:.18em;color:var(--muted);animation:pulse 2.6s ease-in-out infinite;transition:opacity .6s}
+@keyframes pulse{50%{opacity:.3}}
+#msg{position:fixed;left:16px;right:16px;padding-top:16px;bottom:calc(16px + env(safe-area-inset-bottom));overflow:auto;text-align:center;-webkit-overflow-scrolling:touch}
+#msg .to{font-family:'JetBrains Mono',monospace;color:var(--gold);font-size:14px;letter-spacing:.2em;margin-bottom:10px}
+#msg .body{font-size:clamp(17px,4.8vw,23px);line-height:1.75;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;text-shadow:0 0 14px rgba(255,215,122,.45),0 0 2px rgba(255,255,255,.6)}
+#msg .body.typing::after{content:'▍';color:var(--gold);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+#msg .from{font-family:'JetBrains Mono',monospace;color:var(--gold);font-size:14px;letter-spacing:.2em;margin-top:14px}
+#mine{display:inline-block;margin-top:18px;color:var(--muted);font-size:13px;text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:2px}
+
+/* 만드는 화면 */
+#create{position:fixed;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom));user-select:text;-webkit-user-select:text}
+.card{width:100%;max-width:420px;background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:26px 22px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 0 60px rgba(255,215,122,.08),0 20px 50px rgba(0,0,0,.5)}
+.mini{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.15;text-align:center;color:#3f8a5c;text-shadow:0 0 8px rgba(63,138,92,.4);margin-bottom:14px;white-space:pre}
+.mini b{color:var(--gold);text-shadow:0 0 12px var(--gold)}
+.mini i{font-style:normal;color:#fff1c9;text-shadow:0 0 8px #ffe9b8}
+h1{font-family:'JetBrains Mono',monospace;font-size:18px;text-align:center;letter-spacing:.15em;color:var(--gold);margin-bottom:6px}
+.sub{text-align:center;word-break:keep-all;color:var(--muted);font-size:14px;margin-bottom:22px}
+label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;letter-spacing:.05em}
+input,textarea{width:100%;background:rgba(12,9,7,.6);border:1px solid rgba(187,169,148,.3);border-radius:12px;color:var(--ink);font:inherit;font-size:16px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s}
+textarea{min-height:120px;resize:vertical;line-height:1.6}
+input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,215,122,.15)}
+.count{text-align:right;font-size:12px;color:var(--muted);margin-top:4px}
+button{width:100%;margin-top:20px;padding:14px;border:0;border-radius:14px;font:inherit;font-size:16px;font-weight:700;cursor:pointer;color:#2a1f16;background:linear-gradient(135deg,#fff3dc,#ecd3a1 60%,#d6b583);box-shadow:0 0 24px rgba(240,214,160,.3)}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none;font-weight:400}
+.row{display:flex;gap:10px}.row button{margin-top:10px}
+#out{margin-top:20px}
+#link{font-family:'JetBrains Mono',monospace;font-size:12px}
+.err{color:#ff8fa8;font-size:13px;text-align:center;margin-top:10px;min-height:1em}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="view" hidden>
+  <div id="hint">✦ 트리를 눌러 불을 켜 주세요 ✦</div>
+  <div id="msg" hidden>
+    <div class="to fade"></div>
+    <div class="body"></div>
+    <div class="from fade"></div>
+    <a id="mine" class="fade" href="#">✦ 나도 카드 만들기</a>
+  </div>
+</div>
+
+<div id="create" hidden>
+  <div class="card">
+<div class="mini"><b>★</b>
+/*\
+/*<i>o</i>*\
+/<i>o</i>*~*<i>o</i>\
+/*~*<i>o</i>*~*\
+|||</div>
+    <h1>ASCII CHRISTMAS</h1>
+    <p class="sub">메시지를 적으면 나만의 트리 카드 링크가 만들어져요</p>
+    <label for="to">받는 사람</label>
+    <input id="to" maxlength="20" placeholder="예: Hun">
+    <label for="body">메시지</label>
+    <textarea id="body" maxlength="300" placeholder="Merry Christmas!"></textarea>
+    <div class="count"><span id="n">0</span>/300</div>
+    <label for="from">보내는 사람</label>
+    <input id="from" maxlength="20" placeholder="예: Yoon">
+    <button id="make">✦ 카드 링크 만들기</button>
+    <div class="err" id="err"></div>
+    <div id="out" hidden>
+      <label for="link">완성! 이 링크를 보내 주세요</label>
+      <input id="link" readonly>
+      <div class="row">
+        <button class="ghost" id="copy">복사</button>
+        <button class="ghost" id="share">공유</button>
+        <button class="ghost" id="preview">미리보기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const R = Math.random;
+
+// ---- 링크에 메시지 담기 (서버 없음: # 뒤는 서버로 전송되지 않음) ----
+const enc = o => { let s = ''; new TextEncoder().encode(JSON.stringify(o)).forEach(c => s += String.fromCharCode(c));
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const dec = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))));
+const clean = (v, max) => typeof v === 'string' ? Array.from(v).slice(0, max).join('') : '';
+{ const o = { to: 'Hun 💛', m: '메리\n크리스마스', f: 'A&B' }; console.assert(JSON.stringify(dec(enc(o))) === JSON.stringify(o), 'enc/dec 왕복 실패'); }
+
+const base = () => location.href.split('#')[0];
+let card = null;
+const m = location.hash.match(/^#c=([\w-]+)$/);
+if (m) { try { const d = dec(m[1]); card = { to: clean(d.to, 20), m: clean(d.m, 300), f: clean(d.f, 20) }; if (!card.m) card = null; } catch (e) { card = null; } }
+addEventListener('hashchange', () => location.reload());
+
+// ---- 캔버스 ----
+const cv = $('c'), ctx = cv.getContext('2d');
+let W, H, fs, TOP, TH, TR, SHRINK, rot = 0;
+// 톤: 짙은 전나무 초록 + 따뜻한 흰 전구 + 아이보리 리본 + 은빛 크리스털 (무지개색 없음)
+const WARM = '#ffe9b8', SILVER = '#e6ecf2', IVORY = '#f3e7d3';
+const ORN = [WARM, '#fff6e0', IVORY, SILVER, '#ffd9a0'];
+// 3D 나선 트리: 원뿔 위의 점들을 회전시켜 원근 투영 (s: 0 꼭대기 ~ 1 바닥)
+const TURNS = 4.5, pts = [];
+const LEAF = ['#16492c', '#1d6b3d', '#26804a', '#12402a', '#2f9457', '#357a52'];
+const sq = () => Math.sqrt(R()); // 아래로 갈수록 촘촘히 (둘레에 비례)
+for (let i = 0; i < 420; i++) { const s = Math.sqrt(i / 419); // 나선으로 감긴 전구 줄 한 가닥
+  pts.push({ kind: 'light', s, rj: 1.07, a0: s * TURNS * 6.283, ph: R() * 6.28, col: WARM, ch: i % 3 ? '·' : '*' }); }
+for (let i = 0; i < 1500; i++) pts.push({ kind: 'leaf', s: sq(), rj: .45 + R() * .62, a0: R() * 6.283, ph: R() * 6.28, col: LEAF[R() * LEAF.length | 0], ch: '^^*^*'[R() * 5 | 0] });
+for (let i = 0; i < 340; i++) pts.push({ kind: 'fairy', s: sq(), rj: .7 + R() * .36, a0: R() * 6.283, ph: R() * 6.28, col: WARM, ch: '*' });
+for (let i = 0; i < 55; i++) pts.push({ kind: 'icicle', s: .12 + R() * .85, rj: .97, a0: R() * 6.283, ph: R() * 6.28, col: SILVER });
+for (let i = 0; i < 7; i++) pts.push({ kind: 'bow', s: .22 + i * .085, rj: 1.02, a0: i * 2.4, col: IVORY });
+for (let i = 0; i < 170; i++) pts.push({ kind: 'ring', s: 1, rj: 1.12 + R() * .4, a0: R() * 6.283, col: IVORY, ch: '~*·~'[R() * 4 | 0] });
+// 리본 보우 모양: [x, y(아래로), 글자] — 고리 두 개 + 길게 늘어진 꼬리
+const BOW = [[0, 0, '∞', 1.7], [-.3, .9, '/', .9], [.3, .9, '\\', .9], [-.45, 1.7, '(', .9], [.45, 1.7, ')', .9], [-.4, 2.5, ')', .9], [.5, 2.5, '(', .9]];
+
+// 글자 하나하나를 미리 그려 둔 이미지로 찍어서 휴대폰에서도 빠르게
+const glyphs = new Map();
+function glyph(ch, col, glow) {
+  const key = ch + col + glow; let g = glyphs.get(key);
+  if (!g) {
+    g = document.createElement('canvas'); g.width = g.height = 96; const c = g.getContext('2d');
+    c.font = "700 52px 'JetBrains Mono', monospace"; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = col;
+    if (glow) { c.shadowColor = col; c.shadowBlur = 20; c.fillText(ch, 48, 50); c.shadowBlur = 0; }
+    c.fillText(ch, 48, 50); glyphs.set(key, g);
+  }
+  return g;
+}
+document.fonts && document.fonts.ready.then(() => glyphs.clear());
+const glowSpr = (() => { const g = document.createElement('canvas'); g.width = g.height = 128; const c = g.getContext('2d');
+  const r = c.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,214,140,.5)'); r.addColorStop(1, 'rgba(255,214,140,0)');
+  c.fillStyle = r; c.fillRect(0, 0, 128, 128); return g; })();
+
+let flakes = [], stars = [], burst = [];
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  TOP = H * .1; TH = Math.min(H * .72, W * 1.9); TR = Math.min(TH * .4, W * .44);
+  SHRINK = Math.min(1, (H * .54 - TOP) / (TH + TR * .3)); // 메시지 자리를 위해 트리가 줄어들 비율
+  fs = TH / 40;
+  $('msg').style.top = (H * .57) + 'px';
+  const n = Math.min(170, W * H / 7000 | 0);
+  flakes = Array.from({ length: n }, () => ({ x: R() * W, y: R() * H, z: R() * R(), ph: R() * 6.28, ch: '·*.❄+'[R() * 5 | 0] }));
+  stars = Array.from({ length: 22 }, () => ({ x: R() * W, y: R() * H, s: R() * 1.4 + .3, ph: R() * 6.28 }));
+}
+addEventListener('resize', resize); resize();
+
+let litAt = card ? null : 0; // 만드는 화면에선 처음부터 켜진 트리
+const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.pow(1 - x, 3);
+function drawTree(t, now, dt) {
+  const since = litAt === null ? -1 : now - litAt;
+  const lit = since < 0 ? 0 : Math.min(1, since / 2600); // 위에서 아래로 불이 번짐
+  rot += (.35 + (card && since >= 0 ? 1.6 * Math.exp(-since / 1500) : 0)) * dt; // 켜는 순간 빨라졌다 잦아듦
+  const sc = card && since >= 0 ? 1 - (1 - SHRINK) * ease((since - 2200) / 1800) : 1;
+  const Ht = TH * sc, Rr = TR * sc, cx = W / 2, D = 3.2, base = Ht / 46;
+  ctx.globalAlpha = .25 + .75 * lit;
+  ctx.drawImage(glowSpr, cx - Rr * 1.8, TOP + Ht * .55 - Rr * 1.8, Rr * 3.6, Rr * 3.6);
+  for (const p of pts) {
+    const a = p.kind === 'ring' ? p.a0 - rot * .5 : p.a0 + rot;
+    const r = (.03 + p.s) * p.rj, z = r * Math.sin(a), k = D / (D - z);
+    p.x = cx + r * Math.cos(a) * Rr * k; p.y = TOP + p.s * Ht + z * Rr * .22; p.z = z; p.k = k;
+  }
+  pts.sort((a, b) => a.z - b.z); // 뒤에서 앞으로
+  for (const p of pts) {
+    const front = (p.z + 1.3) / 2.6;
+    const on = p.s < lit;
+    let a, size = base * p.k, glow = false;
+    if (p.kind === 'leaf') a = (.35 + .65 * front) * (.85 + .15 * Math.sin(t + p.ph));
+    else if (p.kind === 'ring') { a = (.15 + .45 * front) * (.4 + .6 * lit); size *= .8; }
+    else if (p.kind === 'fairy') { glow = on; a = on ? (.35 + .65 * Math.max(0, Math.sin(t * 2.3 + p.ph))) * (.3 + .7 * front) : 0; size *= .7; }
+    else if (p.kind === 'icicle') { // 늘어진 실 + 크리스털 고드름
+      a = (.2 + .6 * front) * (on ? .7 + .3 * Math.sin(t * 3 + p.ph) : .45);
+      if (a > .02) { ctx.globalAlpha = a * .5; stamp('|', SILVER, false, p.x, p.y + size * .6, size * .7);
+        ctx.globalAlpha = a; stamp('◊', SILVER, on, p.x, p.y + size * 1.5, size * 1.1); }
+      continue;
+    }
+    else if (p.kind === 'bow') { // 정면에 올 때 또렷하게 보이는 아이보리 리본
+      a = Math.max(0, front - .35) * 1.4;
+      if (a > .02) { ctx.globalAlpha = Math.min(1, a); for (const [bx, by, ch, sz] of BOW) stamp(ch, IVORY, false, p.x + bx * size, p.y + by * size, size * sz); }
+      continue;
+    }
+    else { // 나선 전구 줄: 빛이 천천히 감겨 내려가며 반짝임
+      glow = on;
+      const w = ((p.s * 6 - t * .5) % 1 + 1) % 1, head = on && w < .2 ? 1 - w / .2 : 0;
+      a = on ? (.5 + .3 * Math.sin(t * 4 + p.ph) + .4 * head) * (.3 + .7 * front) : .08;
+      size *= 1 + .4 * head;
+    }
+    ctx.globalAlpha = Math.max(0, Math.min(1, a));
+    stamp(p.ch, p.col, glow, p.x, p.y, size);
+  }
+  // 바닥에 번지는 따뜻한 빛
+  ctx.globalAlpha = .7 * lit; ctx.drawImage(glowSpr, cx - Rr * 2, TOP + Ht - Rr * .35, Rr * 4, Rr * .7);
+  // 꼭대기 별
+  const sy = TOP - base * .5, sp = lit > 0 ? .8 + .2 * Math.sin(t * 2.2) : .3;
+  ctx.globalAlpha = sp; ctx.drawImage(glowSpr, cx - base * 6, sy - base * 6, base * 12, base * 12);
+  ctx.globalAlpha = Math.min(1, sp + .2); stamp('★', '#fff1c9', true, cx, sy, base * 3 * (.95 + .05 * Math.sin(t * 3)));
+}
+function stamp(ch, col, glow, x, y, size) { const w = size * 1.85; ctx.drawImage(glyph(ch, col, glow), x - w / 2, y - w / 2, w, w); }
+
+function drawSky(t) { // 실내의 흐릿한 따뜻한 빛망울
+  for (const s of stars) { const r = s.s * 22; ctx.globalAlpha = .1 + .08 * Math.sin(t * .6 + s.ph); ctx.drawImage(glowSpr, s.x - r, s.y - r, r * 2, r * 2); }
+}
+
+function drawSnow(t, dt, near) {
+  ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+  for (const f of flakes) {
+    if ((f.z > .45) !== near) continue;
+    const size = 8 + f.z * 16;
+    f.y += (18 + f.z * 55) * dt; f.x += Math.sin(t * .8 + f.ph) * (8 + f.z * 14) * dt;
+    if (f.y > H + 20) { f.y = -20; f.x = R() * W; }
+    ctx.globalAlpha = .12 + f.z * .35;
+    ctx.font = `${size}px 'JetBrains Mono', monospace`;
+    ctx.fillText(f.ch, f.x, f.y);
+  }
+}
+
+function spawn(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    const a = R() * 6.28, v = 60 + R() * 260;
+    burst.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, life: 1, ch: '*+·✦o'[R() * 5 | 0], col: ORN[R() * ORN.length | 0] });
+  }
+}
+function drawBurst(dt) {
+  ctx.textAlign = 'center'; ctx.font = `700 ${fs}px 'JetBrains Mono', monospace`;
+  burst = burst.filter(p => (p.life -= dt * .7) > 0);
+  for (const p of burst) {
+    p.vy += 160 * dt; p.vx *= .985; p.x += p.vx * dt; p.y += p.vy * dt;
+    ctx.globalAlpha = p.life; ctx.fillStyle = p.col; ctx.shadowColor = p.col; ctx.shadowBlur = 10;
+    ctx.fillText(p.ch, p.x, p.y);
+  }
+  ctx.shadowBlur = 0;
+}
+
+let last = performance.now();
+function frame(now) {
+  const t = now / 1000, dt = Math.min(.05, (now - last) / 1000); last = now;
+  ctx.clearRect(0, 0, W, H);
+  drawSky(t);
+  drawSnow(t, dt, false);
+  drawTree(t, now, dt);
+  drawSnow(t, dt, true);
+  drawBurst(dt);
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---- 받는 화면 ----
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function reveal() {
+  $('hint').style.animation = 'none'; $('hint').style.opacity = 0; // 깜빡임 애니메이션이 opacity를 덮어써서 같이 끔
+  const box = $('msg'), body = box.querySelector('.body');
+  box.hidden = false;
+  box.querySelector('.to').textContent = card.to ? `To. ${card.to}` : 'Merry Christmas';
+  box.querySelector('.from').textContent = card.f ? `From. ${card.f}` : '';
+  $('mine').href = base();
+  await wait(1700);
+  box.querySelector('.to').classList.add('show');
+  await wait(700);
+  body.classList.add('typing');
+  for (const ch of Array.from(card.m)) {
+    body.textContent += ch;
+    box.scrollTop = box.scrollHeight;
+    await wait(ch === '\n' ? 380 : /[.!?,~]/.test(ch) ? 260 : 85);
+  }
+  body.classList.remove('typing');
+  await wait(400);
+  box.querySelector('.from').classList.add('show');
+  await wait(1600);
+  $('mine').classList.add('show');
+}
+
+if (card) {
+  $('view').hidden = false;
+  addEventListener('pointerdown', e => {
+    if (e.target.closest('a')) return;
+    navigator.vibrate?.(25);
+    if (litAt === null) { litAt = performance.now(); spawn(W / 2, TOP, 140); reveal(); }
+    else spawn(e.clientX, e.clientY, 40); // 이후 터치는 불꽃
+  });
+} else {
+  // ---- 만드는 화면 ----
+  $('create').hidden = false;
+  if (m) $('err').textContent = '링크가 손상되어 열 수 없어요. 새로 만들어 주세요.';
+  $('body').addEventListener('input', e => $('n').textContent = Array.from(e.target.value).length);
+  $('make').onclick = () => {
+    const c = { to: $('to').value.trim(), m: $('body').value.trim(), f: $('from').value.trim() };
+    if (!c.m) { $('err').textContent = '메시지를 적어 주세요.'; $('body').focus(); return; }
+    $('err').textContent = '';
+    $('link').value = base() + '#c=' + enc(c);
+    $('out').hidden = false;
+    $('share').hidden = !navigator.share;
+    spawn(W / 2, H * .3, 60);
+  };
+  $('copy').onclick = async () => {
+    try { await navigator.clipboard.writeText($('link').value); }
+    catch (e) { $('link').select(); document.execCommand('copy'); }
+    $('copy').textContent = '복사됨 ✓'; setTimeout(() => $('copy').textContent = '복사', 1500);
+  };
+  $('share').onclick = () => navigator.share({ title: 'Merry Christmas ✦', text: '너에게 온 크리스마스 카드 🎄', url: $('link').value }).catch(() => {});
+  $('preview').onclick = () => { location.href = $('link').value; };
+}
+</script>
+</body>
+</html>
